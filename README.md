@@ -1,4 +1,4 @@
-# ssh-bridge
+# windows-ssh-wsl2-bridge
 
 Bridges the Windows native OpenSSH client (`ssh.exe`) to an SSH agent running
 inside a WSL2 distro (default: **NixOS**), so the WSL2 agent is the single
@@ -8,7 +8,7 @@ environment variables.
 ## How it works
 
 ```
-ssh.exe  ──►  \\.\pipe\openssh-ssh-agent  ──►  ssh-bridge.exe
+ssh.exe  ──►  \\.\pipe\openssh-ssh-agent  ──►  windows-ssh-wsl2-bridge.exe
                                                       │
                                                wsl.exe -d NixOS
                                                       │
@@ -18,7 +18,7 @@ ssh.exe  ──►  \\.\pipe\openssh-ssh-agent  ──►  ssh-bridge.exe
                                               WSL2 ssh-agent
 ```
 
-`ssh-bridge.exe` listens on `\\.\pipe\openssh-ssh-agent` — the exact pipe that
+`windows-ssh-wsl2-bridge.exe` listens on `\\.\pipe\openssh-ssh-agent` — the exact pipe that
 Windows `ssh.exe` queries by default.  For each connection it spawns
 `wsl.exe … socat …` and relays raw bytes in both directions.  If WSL2 is
 sleeping, `wsl.exe` wakes the distro before socat runs, so no manual
@@ -58,17 +58,17 @@ environment.systemPackages = [ pkgs.socat ];
 
 ```powershell
 # From the repository root (Windows PowerShell or cmd)
-go build -ldflags="-H windowsgui" -o ssh-bridge.exe .
+go build -ldflags="-H windowsgui" -o windows-ssh-wsl2-bridge.exe .
 ```
 
 `-H windowsgui` prevents a console window from flashing when the bridge starts
-at login.  Logs are written to `ssh-bridge.exe.log` in the same directory.
+at login.  Logs are written to `windows-ssh-wsl2-bridge.exe.log` in the same directory.
 
 Cross-compile from Linux/macOS:
 
 ```bash
 GOOS=windows GOARCH=amd64 \
-  go build -ldflags="-H windowsgui" -o ssh-bridge.exe .
+  go build -ldflags="-H windowsgui" -o windows-ssh-wsl2-bridge.exe .
 ```
 
 ## Install as a Windows Scheduled Task (runs at login, no UAC prompt)
@@ -77,8 +77,8 @@ Open **Task Scheduler** → *Create Task* and fill in the fields below, or paste
 the PowerShell snippet:
 
 ```powershell
-# Adjust $exePath to wherever you placed ssh-bridge.exe
-$exePath = "C:\Tools\ssh-bridge\ssh-bridge.exe"
+# Adjust $exePath to wherever you placed windows-ssh-wsl2-bridge.exe
+$exePath = "C:\Tools\windows-ssh-wsl2-bridge\windows-ssh-wsl2-bridge.exe"
 
 $action  = New-ScheduledTaskAction -Execute $exePath
 $trigger = New-ScheduledTaskTrigger -AtLogOn
@@ -88,7 +88,7 @@ $settings = New-ScheduledTaskSettingsSet `
     -RestartInterval (New-TimeSpan -Minutes 1)
 
 Register-ScheduledTask `
-    -TaskName  "ssh-bridge" `
+    -TaskName  "windows-ssh-wsl2-bridge" `
     -Action    $action `
     -Trigger   $trigger `
     -Settings  $settings `
@@ -102,14 +102,14 @@ Register-ScheduledTask `
 To start it immediately without logging out:
 
 ```powershell
-Start-ScheduledTask -TaskName "ssh-bridge"
+Start-ScheduledTask -TaskName "windows-ssh-wsl2-bridge"
 ```
 
 To stop and remove it:
 
 ```powershell
-Stop-ScheduledTask  -TaskName "ssh-bridge"
-Unregister-ScheduledTask -TaskName "ssh-bridge" -Confirm:$false
+Stop-ScheduledTask  -TaskName "windows-ssh-wsl2-bridge"
+Unregister-ScheduledTask -TaskName "windows-ssh-wsl2-bridge" -Confirm:$false
 ```
 
 ## Verify it works
@@ -128,12 +128,12 @@ If `ssh-add -l` returns your key fingerprints, the bridge is working.
 
 | Symptom | Likely cause |
 |---------|--------------|
-| `ssh-add -l` → *error connecting to agent* | `ssh-bridge.exe` is not running — check Task Scheduler |
+| `ssh-add -l` → *error connecting to agent* | `windows-ssh-wsl2-bridge.exe` is not running — check Task Scheduler |
 | `ssh-add -l` → *no identities* | Agent inside WSL2 has no keys loaded — run `ssh-add` inside WSL2 |
 | Bridge starts but hangs | `socat` not installed inside the distro, or wrong `agentSock` path |
 | Log shows `cmd.Start` error | `wsl.exe` not in `PATH`, or distro name typo in `wslDistro` constant |
 
-Check `ssh-bridge.exe.log` (in the same folder as the binary) for detailed
+Check `windows-ssh-wsl2-bridge.exe.log` (in the same folder as the binary) for detailed
 per-connection logs.
 
 ## Security notes

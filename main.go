@@ -36,7 +36,7 @@ func main() {
 		defer lf.Close()
 	}
 	log.SetFlags(log.LstdFlags | log.Lmsgprefix)
-	log.SetPrefix("[ssh-bridge] ")
+	log.SetPrefix("[windows-ssh-wsl2-bridge] ")
 
 	// Create the Named Pipe listener.  go-winio creates the pipe with the
 	// correct security descriptor so that any local user can connect, which
